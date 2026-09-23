@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: rechkapesok_db
+    environment:
+      POSTGRES_USER: rechkapesok
+      POSTGRES_PASSWORD: rechkapesok_password
+      POSTGRES_DB: rechkapesok
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  bot:
+    build: .
+    container_name: rechkapesok_bot
+    command: sh -c "sleep 10 && python -m src.init_db --force && python -m src.bot.bot"
+    environment:
+      BOT_TOKEN: 8765827339:AAECiyiGX52g6SC_xT7jheUQglijSin1Yn8
+      DATABASE_URL: postgresql+asyncpg://rechkapesok:rechkapesok_password@postgres:5432/rechkapesok
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      ADMIN_IDS: 8387227043
+    depends_on:
+      - postgres
+    volumes:
+      - ./data:/app/data
+      - ./src:/app/src
+
+  admin:
+    build: .
+    container_name: rechkapesok_admin
+    command: python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000
+    environment:
+      DATABASE_URL: postgresql+asyncpg://rechkapesok:rechkapesok_password@postgres:5432/rechkapesok
+      ADMIN_IDS: 8387227043
+    depends_on:
+      - postgres
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./src:/app/src
+
+volumes:
+  postgres_data:

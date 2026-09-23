@@ -1,0 +1,26 @@
+{
+  "synthetic": true,
+  "version": "DEMO-1",
+  "checkin": "15:00",
+  "checkout": "12:00",
+  "required_fields": [
+    "adults",
+    "children",
+    "arrival_time",
+    "has_car",
+    "has_pet",
+    "extra_bed_requested",
+    "early_arrival_requested",
+    "breakfast_requested",
+    "rules_accepted"
+  ],
+  "conditional_fields": {
+    "car_plates": "обязательно, если has_car=true; иначе []"
+  },
+  "rules_text": "Учебные правила: соблюдать тишину с 23:00 до 08:00; не разводить огонь вне разрешённых зон; вопросы размещения и дополнительных услуг подтверждает администратор. Реальные правила и штрафы не представлены.",
+  "fines": null,
+  "reminder_after_hours": 12,
+  "max_reminders": 1,
+  "escalate_after_second_wait_hours": 12,
+  "note": "Второй интервал ожидания — учебное уточнение, подлежит подтверждению для пилота."
+}

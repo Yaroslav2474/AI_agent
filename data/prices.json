@@ -1,0 +1,28 @@
+{
+  "synthetic": true,
+  "items": [
+    {
+      "id": "PET",
+      "label": "Питомец",
+      "price": 1500,
+      "unit": "ночь",
+      "source_id": "FAQ04",
+      "requires_confirmation": true
+    },
+    {
+      "id": "COAL",
+      "label": "Уголь",
+      "price": 500,
+      "unit": "упаковка",
+      "source_id": "FAQ07",
+      "requires_confirmation": true
+    },
+    {
+      "id": "EARLY",
+      "label": "Ранний заезд",
+      "price": null,
+      "unit": null,
+      "requires_confirmation": true
+    }
+  ]
+}

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Речка и Песок - Админ панель</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .info {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            padding: 12px 8px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 14px;
+        }
+
+        th {
+            background: #4CAF50;
+            color: white;
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: #f9f9f9;
+        }
+
+        .status {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status.ready {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .status.incomplete {
+            background: #FF9800;
+            color: white;
+        }
+
+        .status.needs_human {
+            background: #f44336;
+            color: white;
+        }
+
+        .status.confirmed {
+            background: #2196F3;
+            color: white;
+        }
+
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            margin-right: 4px;
+        }
+
+        .btn-confirm {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-escalate {
+            background: #f44336;
+            color: white;
+        }
+
+        .car-plates {
+            font-size: 12px;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            table {
+                font-size: 12px;
+            }
+
+            th, td {
+                padding: 8px 4px;
+            }
+
+            .btn {
+                padding: 4px 8px;
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏠 Речка и Песок - Админ панель</h1>
+
+        <div class="info">
+            <strong>Обновлено:</strong> {{ now }}
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Бронь</th>
+                    <th>Гость</th>
+                    <th>Заезд</th>
+                    <th>Время</th>
+                    <th>Домик</th>
+                    <th>Гости</th>
+                    <th>Авто</th>
+                    <th>Питомец</th>
+                    <th>Статус</th>
+                    <th>КПП</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for booking in bookings %}
+                <tr>
+                    <td><strong>{{ booking.booking_id }}</strong></td>
+                    <td>{{ booking.guest_name }}</td>
+                    <td>{{ booking.arrival_date }}</td>
+                    <td>{{ booking.arrival_time or '-' }}</td>
+                    <td>{{ booking.house_id }}</td>
+                    <td>{{ booking.adults }}в/{{ booking.children }}р</td>
+                    <td>
+                        {% if booking.has_car %}
+                            ✅
+                            {% if booking.car_plates %}
+                                <div class="car-plates">{{ booking.car_plates|join(', ') }}</div>
+                            {% endif %}
+                        {% else %}
+                            ❌
+                        {% endif %}
+                    </td>
+                    <td>{% if booking.has_pet %}✅{% else %}❌{% endif %}</td>
+                    <td>
+                        <span class="status {{ booking.status }}">{{ booking.status }}</span>
+                    </td>
+                    <td>
+                        {% if booking.kpp_string %}
+                            <small>{{ booking.kpp_string }}</small>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        <button class="btn btn-confirm" onclick="confirmCheckin('{{ booking.booking_id }}')">✓</button>
+                        <button class="btn btn-escalate" onclick="escalateBooking('{{ booking.booking_id }}')">!</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        async function confirmCheckin(bookingId) {
+            if (confirm('Подтвердить заселение брони ' + bookingId + '?')) {
+                const response = await fetch(`/confirm/${bookingId}`, {
+                    method: 'POST'
+                });
+                if (response.ok) {
+                    location.reload();
+                }
+            }
+        }
+
+        async function escalateBooking(bookingId) {
+            if (confirm('Передать брони ' + bookingId + ' администратору?')) {
+                const response = await fetch(`/escalate/${bookingId}`, {
+                    method: 'POST'
+                });
+                if (response.ok) {
+                    location.reload();
+                }
+            }
+        }
+    </script>
+</body>
+</html>
