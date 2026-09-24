@@ -52,6 +52,16 @@
             font-size: 14px;
         }
 
+        .pdf-link {
+            color: #2196F3;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .pdf-link:hover {
+            text-decoration: underline;
+        }
+
         th {
             background: #4CAF50;
             color: white;
@@ -150,6 +160,7 @@
                     <th>Питомец</th>
                     <th>Статус</th>
                     <th>КПП</th>
+                    <th>PDF</th>
                     <th>Действия</th>
                 </tr>
             </thead>
@@ -179,6 +190,13 @@
                     <td>
                         {% if booking.kpp_string %}
                             <small>{{ booking.kpp_string }}</small>
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if booking.pdf_path and booking.status == 'ready' %}
+                            <a href="/static/pdfs/{{ booking.pdf_path }}" class="pdf-link" target="_blank">📄 Скачать PDF</a>
                         {% else %}
                             -
                         {% endif %}

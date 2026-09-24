@@ -59,6 +59,7 @@ class GuestCard(Base):
     additional_info = Column(JSON, nullable=True, default=dict)
     kpp_string = Column(String, nullable=True)
     estimated_cost = Column(JSON, nullable=True, default=dict)
+    pdf_path = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

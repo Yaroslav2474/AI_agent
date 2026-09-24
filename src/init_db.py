@@ -1,11 +1,19 @@
 import asyncio
-from src.db.database import init_db, get_session
+from src.db.database import init_db, get_session, engine
 from src.services.data_loader import data_loader
 from src.models.database import Booking
-from sqlalchemy import select
+from sqlalchemy import select, text
 
-async def initialize_bookings(force_reload=False):
+async def initialize_bookings(force_reload=False, drop_tables=False):
     """Initialize bookings from JSON file into database"""
+    if drop_tables:
+        async with engine.begin() as conn:
+            await conn.execute(text("DROP TABLE IF EXISTS guest_cards CASCADE"))
+            await conn.execute(text("DROP TABLE IF EXISTS bookings CASCADE"))
+            await conn.execute(text("DROP TABLE IF EXISTS admin_logs CASCADE"))
+            await conn.execute(text("DROP TABLE IF EXISTS time_simulation CASCADE"))
+        print("Dropped all tables")
+
     await init_db()
 
     async for session in get_session():
@@ -53,4 +61,5 @@ async def initialize_bookings(force_reload=False):
 if __name__ == "__main__":
     import sys
     force = "--force" in sys.argv or "-f" in sys.argv
-    asyncio.run(initialize_bookings(force_reload=force))
+    drop_tables = "--drop-tables" in sys.argv
+    asyncio.run(initialize_bookings(force_reload=force, drop_tables=drop_tables))

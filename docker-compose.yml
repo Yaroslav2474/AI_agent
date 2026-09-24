@@ -16,7 +16,7 @@ services:
   bot:
     build: .
     container_name: rechkapesok_bot
-    command: sh -c "sleep 10 && python -m src.init_db --force && python -m src.bot.bot"
+    command: sh -c "sleep 10 && python -m src.init_db --force --drop-tables && python -m src.bot.bot"
     environment:
       BOT_TOKEN: ${BOT_TOKEN}
       DATABASE_URL: postgresql+asyncpg://rechkapesok:rechkapesok_password@postgres:5432/rechkapesok
@@ -27,6 +27,7 @@ services:
     volumes:
       - ./data:/app/data
       - ./src:/app/src
+      - ./src/static:/app/src/static
 
   admin:
     build: .
@@ -41,6 +42,7 @@ services:
       - "8000:8000"
     volumes:
       - ./src:/app/src
+      - ./src/static:/app/src/static
 
 volumes:
   postgres_data:

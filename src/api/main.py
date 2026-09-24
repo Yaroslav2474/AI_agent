@@ -1,13 +1,19 @@
 from fastapi import FastAPI, Request, Depends
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import select
 from src.db.database import get_session
 from src.models.database import Booking, GuestCard
 from datetime import datetime, timezone
+import os
 
 app = FastAPI(title="Речка и Песок Admin Panel")
 templates = Jinja2Templates(directory="src/api/templates")
+
+# Mount static files for PDFs
+os.makedirs("src/static/pdfs", exist_ok=True)
+app.mount("/static", StaticFiles(directory="src/static"), name="static")
 
 @app.get("/", response_class=HTMLResponse)
 async def admin_panel(request: Request):
@@ -37,7 +43,8 @@ async def admin_panel(request: Request):
             "kpp_string": guest_card.kpp_string if guest_card else None,
             "estimated_cost": guest_card.estimated_cost if guest_card else None,
             "telegram_id": guest_card.telegram_id if guest_card else None,
-            "updated_at": booking.updated_at.strftime("%Y-%m-%d %H:%M") if booking.updated_at else None
+            "updated_at": booking.updated_at.strftime("%Y-%m-%d %H:%M") if booking.updated_at else None,
+            "pdf_path": guest_card.pdf_path if guest_card else None
         })
 
     return templates.TemplateResponse(

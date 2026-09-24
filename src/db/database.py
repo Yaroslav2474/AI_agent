@@ -15,3 +15,5 @@ async def init_db():
 async def get_session():
     async with async_session() as session:
         yield session
+
+__all__ = ["engine", "init_db", "get_session"]
