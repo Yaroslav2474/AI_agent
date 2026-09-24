@@ -10,18 +10,118 @@ class BusinessLogicService:
         self.faq = data_loader.get_faq()
 
     def validate_time_format(self, time_str: str) -> bool:
-        """Validate time format HH:MM"""
+        """Validate time format HH:MM with extra metadata stripping"""
         if not time_str:
             return False
+        
+        # Strip any leading/trailing whitespace, brackets, or extra text
+        time_str = time_str.strip()
+        
+        # Remove common metadata patterns that LLM might add
+        # Remove text in parentheses or brackets at the end
+        import re
+        time_str = re.sub(r'[\[\(].*?[\]\)]$', '', time_str).strip()
+        # Remove trailing text like " - afternoon", " (PM)", etc.
+        time_str = re.sub(r'\s*[-–]\s*[^\d:]+$', '', time_str).strip()
+        # Remove any non-time characters except digits and colon
+        time_str = re.sub(r'[^\d:]', '', time_str)
+        
+        # Validate the cleaned time format
         pattern = r'^([01]?[0-9]|2[0-3]):[0-5][0-9]$'
         return bool(re.match(pattern, time_str))
 
-    def validate_car_plate(self, plate: str) -> bool:
-        """Validate car plate format (basic validation)"""
+    def sanitize_car_plate(self, plate: str) -> str:
+        """
+        Sanitize car plate input: uppercase, strip spaces/commas, map Cyrillic to Latin
+        """
         if not plate:
-            return False
-        # Basic validation - should be at least 6 characters
-        return len(plate) >= 6
+            return plate
+        
+        # Strip spaces and commas
+        plate = plate.strip().replace(',', '').replace(' ', '')
+        
+        # Convert to uppercase
+        plate = plate.upper()
+        
+        # Map Cyrillic letters to Latin equivalents for Russian plates
+        cyrillic_to_latin = {
+            'А': 'A', 'В': 'B', 'Е': 'E', 'К': 'K', 'М': 'M',
+            'Н': 'H', 'О': 'O', 'Р': 'P', 'С': 'C', 'Т': 'T',
+            'У': 'Y', 'Х': 'X'
+        }
+        
+        # Convert Cyrillic to Latin
+        for cyr, lat in cyrillic_to_latin.items():
+            plate = plate.replace(cyr, lat)
+        
+        return plate
+
+    def validate_car_plate(self, plate: str) -> tuple[bool, str]:
+        """
+        Validate car plate format with smart Russian/foreign detection.
+        Returns (is_valid, error_message)
+        
+        Rules:
+        - If plate is empty: return (False, "empty")
+        - If plate matches Russian format exactly: return (True, "")
+        - If plate contains letters and digits but doesn't match Russian pattern: accept as foreign
+        - If plate doesn't contain both letters and digits: return (False, "invalid_format")
+        """
+        if not plate:
+            return False, "empty"
+        
+        # Sanitize the plate first
+        sanitized_plate = self.sanitize_car_plate(plate)
+        
+        # Russian plate pattern: 1 letter, 3 digits, 2 letters, 2-3 digits (case-insensitive)
+        russian_pattern = r'^[A-Za-zА-Яа-я]\d{3}[A-Za-zА-Яа-я]{2}\d{2,3}$'
+        
+        # Check if it matches Russian format exactly
+        if re.match(russian_pattern, sanitized_plate, re.IGNORECASE):
+            return True, ""
+        
+        # Check if it contains letters and digits - accept as foreign plate
+        has_letters = bool(re.search(r'[A-Za-zА-Яа-я]', sanitized_plate))
+        has_digits = bool(re.search(r'\d', sanitized_plate))
+        
+        if has_letters and has_digits:
+            # It contains letters and digits but doesn't match Russian pattern
+            # Accept it as a foreign plate
+            return True, ""
+        
+        # If it doesn't look like a car plate at all (missing letters or digits)
+        return False, "invalid_format"
+
+    def extract_car_plate_from_text(self, text: str) -> list[str]:
+        """
+        Fallback: Extract potential car plates from text using regex patterns.
+        This is used when AI parsing fails.
+        """
+        if not text:
+            return []
+        
+        plates = []
+        
+        # Pattern for Russian plates: letter + 3 digits + 2 letters + 2-3 digits
+        russian_pattern = r'[A-Za-zА-Яа-я]\d{3}[A-Za-zА-Яа-я]{2}\d{2,3}'
+        matches = re.findall(russian_pattern, text, re.IGNORECASE)
+        
+        for match in matches:
+            sanitized = self.sanitize_car_plate(match)
+            if sanitized:
+                plates.append(sanitized)
+        
+        # Pattern for foreign plates: any sequence of letters and numbers (6+ chars)
+        foreign_pattern = r'[A-Za-z0-9А-Яа-я]{6,}'
+        foreign_matches = re.findall(foreign_pattern, text)
+        
+        for match in foreign_matches:
+            # Only add if it's not already in the list and looks like a plate
+            sanitized = self.sanitize_car_plate(match)
+            if sanitized and sanitized not in plates:
+                plates.append(sanitized)
+        
+        return plates
 
     def calculate_nights(self, arrival_date: str, departure_date: str) -> int:
         """Calculate number of nights between dates"""
@@ -90,6 +190,15 @@ class BusinessLogicService:
         if booking_data.get("early_arrival_requested"):
             costs["early_arrival"] = {
                 "item": "Ранний заезд",
+                "price": None,
+                "requires_confirmation": True,
+                "note": "Цена не указана, требуется подтверждение администратора"
+            }
+
+        # Breakfast - price unknown (requires admin confirmation per FAQ06)
+        if booking_data.get("breakfast_requested"):
+            costs["breakfast"] = {
+                "item": "Завтрак",
                 "price": None,
                 "requires_confirmation": True,
                 "note": "Цена не указана, требуется подтверждение администратора"
