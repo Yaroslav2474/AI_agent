@@ -34,7 +34,7 @@ services:
     command: python -m uvicorn src.api.main:app --host 0.0.0.0 --port 8000
     environment:
       DATABASE_URL: postgresql+asyncpg://rechkapesok:rechkapesok_password@postgres:5432/rechkapesok
-      ADMIN_IDS: 8387227043
+      ADMIN_IDS: ${ADMIN_IDS}
     depends_on:
       - postgres
     ports:
