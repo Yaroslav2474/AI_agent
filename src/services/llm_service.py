@@ -38,6 +38,7 @@ For car_plates, return empty array [] if no car mentioned or "без машин�
 For time, validate it's in HH:MM format (00:00-23:59).
 """
 
+        content = None
         try:
             response = await self.client.chat.completions.create(
                 model="gpt-3.5-turbo",
@@ -49,17 +50,22 @@ For time, validate it's in HH:MM format (00:00-23:59).
             )
 
             content = response.choices[0].message.content
-            logger.info(f"LLM response: {content}")
-            
-            # Try to extract JSON from response
-            if "```json" in content:
-                content = content.split("```json")[1].split("```")[0].strip()
-            elif "```" in content:
-                content = content.split("```")[1].split("```")[0].strip()
-            
+            # Handle potential markdown code blocks
+            if content.startswith("```json"):
+                content = content[7:]
+            if content.startswith("```"):
+                content = content[3:]
+            if content.endswith("```"):
+                content = content[:-3]
+            content = content.strip()
+
             result = json.loads(content)
+            logger.info(f"LLM parsed successfully: {result}")
             return result
 
+        except json.JSONDecodeError as e:
+            logger.exception(f"JSON parsing error: {e}, content: {content}")
+            return {"error": f"JSON parsing error: {e}"}
         except Exception as e:
             logger.exception(f"LLM parsing error: {e}")
             return {"error": str(e)}
@@ -91,7 +97,7 @@ Return ONLY the category name.
             return response.choices[0].message.content.strip().lower()
 
         except Exception as e:
-            print(f"LLM classification error: {e}")
+            logger.exception(f"LLM classification error: {e}")
             return "normal_question"
 
 # Global instance
