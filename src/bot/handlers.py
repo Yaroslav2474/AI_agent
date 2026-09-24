@@ -10,6 +10,9 @@ from src.services.data_loader import data_loader
 from src.services.business_logic import business_logic
 from src.services.llm_service import llm_service
 from src.utils.config import settings
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = Router()
 
@@ -123,6 +126,7 @@ async def process_guest_info(message: types.Message, state: FSMContext):
         parsed_data = await llm_service.parse_guest_message(message.text, context)
 
         if "error" in parsed_data:
+            logger.exception("Detailed LLM Parsing Error:")
             await message.answer("Не удалось распознать сообщение. Пожалуйста, уточните информацию.")
             return
 
@@ -319,8 +323,18 @@ async def process_guest_info(message: types.Message, state: FSMContext):
             await state.set_state(CheckInStates.ready)
         else:
             # Request missing information
-            missing_text = "Пожалуйста, уточните:\n" + "\n".join(f"• {field}" for field in missing_fields)
+            # Красивый словарь перевода полей для жюри
+            translations = {
+                "extra_bed_requested": "Нужно ли дополнительное место (доп. кровать)?",
+                "early_arrival_requested": "Требуется ли вам ранний заезд?",
+                "breakfast_requested": "Желаете ли заказать завтрак?"
+                }
+
+            # Переводим и собираем список недостающих полей
+            russian_fields = [f"• {translations.get(f, f)}" for f in missing_fields]
+            missing_text = "Пожалуйста, уточните:\n" + "\n".join(russian_fields)
             await message.answer(missing_text)
+
 
 @router.message(CheckInStates.ready)
 async def handle_ready_state(message: types.Message, state: FSMContext):

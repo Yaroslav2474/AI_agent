@@ -9,7 +9,10 @@ logger = logging.getLogger(__name__)
 
 class LLMService:
     def __init__(self):
-        self.client = AsyncOpenAI(api_key=settings.openai_api_key)
+        self.client = AsyncOpenAI(
+            api_key=settings.openai_api_key,
+            base_url="https://openrouter.ai/api/v1"
+        )
 
     async def parse_guest_message(self, message: str, context: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -33,15 +36,17 @@ Extract the following fields if present:
 - rules_accepted: boolean (true if guest accepts rules)
 - human_request: any request that needs human attention (string)
 
-Return ONLY valid JSON. If a field is not mentioned, set it to null.
+IMPORTANT: Return ONLY a valid JSON object. Do not include any text outside the JSON.
 For car_plates, return empty array [] if no car mentioned or "без машины".
 For time, validate it's in HH:MM format (00:00-23:59).
+Set null for any field not mentioned in the message.
 """
 
         content = None
         try:
+            logger.info(f"LLM parsing message: {message}")
             response = await self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="openrouter/free",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": f"Message: {message}\nContext: {json.dumps(context, ensure_ascii=False)}"}
@@ -50,6 +55,8 @@ For time, validate it's in HH:MM format (00:00-23:59).
             )
 
             content = response.choices[0].message.content
+            logger.info(f"LLM raw response: {content}")
+
             # Handle potential markdown code blocks
             if content.startswith("```json"):
                 content = content[7:]
@@ -86,7 +93,7 @@ Return ONLY the category name.
 
         try:
             response = await self.client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="meta-llama/llama-3.1-70b-instruct:free",
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": message}
